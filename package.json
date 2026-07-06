@@ -1,0 +1,22 @@
+{
+  "name": "trello-cli",
+  "version": "0.1.0",
+  "description": "Trello CLI que embute um servidor MCP e uma Skill, sobre um núcleo compartilhado",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "trello": "./src/bin.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "bun run src/bin.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

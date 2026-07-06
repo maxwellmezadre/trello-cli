@@ -1,0 +1,21 @@
+node_modules/
+dist/
+*.log
+
+# Build artifacts (single binary)
+/trello
+/trello-*
+
+# Downloads/exports produced at runtime
+trello-downloads/
+export*/
+
+# Env
+.env
+.env.*
+
+# OS/editor
+.DS_Store
+
+# Planning artifacts (not part of the public repo)
+task/
