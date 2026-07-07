@@ -60,6 +60,24 @@ export type Checklist = {
   checkItems: CheckItem[];
 };
 
+export type CardCreateInput = {
+  idList: string;
+  name: string;
+  desc?: string;
+  due?: string;
+  pos?: number | string;
+};
+
+export type CardUpdateInput = {
+  name?: string;
+  desc?: string;
+  due?: string;
+  dueComplete?: boolean;
+  idList?: string;
+  closed?: boolean;
+  pos?: number | string;
+};
+
 export type TrelloClient = {
   listBoards(): Promise<Board[]>;
   getBoard(boardId: string, opts?: { withLists?: boolean }): Promise<Board>;
@@ -68,9 +86,20 @@ export type TrelloClient = {
   getCard(cardId: string): Promise<Card>;
   getComments(cardId: string): Promise<CardComment[]>;
   getChecklists(cardId: string): Promise<Checklist[]>;
+  createList(input: { idBoard: string; name: string }): Promise<List>;
+  createCard(input: CardCreateInput): Promise<Card>;
+  updateCard(cardId: string, fields: CardUpdateInput): Promise<Card>;
+  moveCard(cardId: string, listId: string, pos?: number | string): Promise<Card>;
+  archiveCard(cardId: string): Promise<Card>;
 };
 
 export function createTrelloClient(http: TrelloHttp): TrelloClient {
+  const updateCard = (cardId: string, fields: CardUpdateInput): Promise<Card> =>
+    http.request<Card>(`/1/cards/${cardId}`, {
+      method: "PUT",
+      query: { ...fields },
+    });
+
   return {
     listBoards() {
       return http.request<Board[]>("/1/members/me/boards");
@@ -98,6 +127,31 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
       return http.request<Checklist[]>(`/1/cards/${cardId}/checklists`, {
         query: { checkItems: "all" },
       });
+    },
+    createList(input) {
+      return http.request<List>("/1/lists", {
+        method: "POST",
+        query: { idBoard: input.idBoard, name: input.name },
+      });
+    },
+    createCard(input) {
+      return http.request<Card>("/1/cards", {
+        method: "POST",
+        query: {
+          idList: input.idList,
+          name: input.name,
+          desc: input.desc,
+          due: input.due,
+          pos: input.pos,
+        },
+      });
+    },
+    updateCard,
+    moveCard(cardId, listId, pos) {
+      return updateCard(cardId, { idList: listId, pos });
+    },
+    archiveCard(cardId) {
+      return updateCard(cardId, { closed: true });
     },
   };
 }

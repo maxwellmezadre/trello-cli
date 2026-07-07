@@ -1,10 +1,19 @@
 import type { Config } from "../config.js";
-import { getBoard, getLists, listBoards } from "./boards.js";
-import { getCard, getCardsInList, getComments } from "./cards.js";
+import { createList, getBoard, getLists, listBoards } from "./boards.js";
+import {
+  archiveCard,
+  createCard,
+  getCard,
+  getCardsInList,
+  getComments,
+  moveCard,
+  updateCard,
+} from "./cards.js";
 import { getChecklists } from "./checklists.js";
 import type { ToolDef } from "./define.js";
 
 export const allTools: ToolDef[] = [
+  // Leitura (read-only mode registra só estas).
   listBoards,
   getBoard,
   getLists,
@@ -12,6 +21,12 @@ export const allTools: ToolDef[] = [
   getCard,
   getComments,
   getChecklists,
+  // Escrita.
+  createList,
+  createCard,
+  updateCard,
+  moveCard,
+  archiveCard,
 ];
 
 /**

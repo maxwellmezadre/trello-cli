@@ -32,3 +32,15 @@ export const getLists = defineTool({
   }),
   run: (args, ctx) => ctx.trello.getLists(args.boardId),
 });
+
+export const createList = defineTool({
+  name: "create_list",
+  description: "Cria uma lista em um board.",
+  readOnly: false,
+  input: Type.Object({
+    boardId: Type.String({ description: "ID do board" }),
+    name: Type.String({ description: "Nome da lista" }),
+  }),
+  run: (args, ctx) =>
+    ctx.trello.createList({ idBoard: args.boardId, name: args.name }),
+});
