@@ -17,6 +17,7 @@ import {
   setChecklistItemState,
 } from "./checklists.js";
 import type { ToolDef } from "./define.js";
+import { search } from "./search.js";
 
 export const allTools: ToolDef[] = [
   // Leitura (read-only mode registra só estas).
@@ -27,6 +28,7 @@ export const allTools: ToolDef[] = [
   getCard,
   getComments,
   getChecklists,
+  search,
   // Escrita.
   createList,
   createCard,

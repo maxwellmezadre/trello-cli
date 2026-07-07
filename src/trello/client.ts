@@ -60,6 +60,19 @@ export type Checklist = {
   checkItems: CheckItem[];
 };
 
+export type SearchResult = {
+  boards: Board[];
+  cards: Card[];
+  organizations?: Array<{ id: string; name: string; displayName?: string }>;
+};
+
+export type SearchInput = {
+  query: string;
+  modelTypes?: string;
+  boardsLimit?: number;
+  cardsLimit?: number;
+};
+
 export type CardCreateInput = {
   idList: string;
   name: string;
@@ -103,6 +116,7 @@ export type TrelloClient = {
     checkItemId: string,
     state: "complete" | "incomplete",
   ): Promise<CheckItem>;
+  search(input: SearchInput): Promise<SearchResult>;
 };
 
 export function createTrelloClient(http: TrelloHttp): TrelloClient {
@@ -189,6 +203,17 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
         `/1/cards/${cardId}/checkItem/${checkItemId}`,
         { method: "PUT", query: { state } },
       );
+    },
+    search(input) {
+      return http.request<SearchResult>("/1/search", {
+        query: {
+          query: input.query,
+          modelTypes: input.modelTypes,
+          partial: true,
+          boards_limit: input.boardsLimit,
+          cards_limit: input.cardsLimit,
+        },
+      });
     },
   };
 }
