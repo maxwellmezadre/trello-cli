@@ -99,3 +99,14 @@ export const archiveCard = defineTool({
   }),
   run: (args, ctx) => ctx.trello.archiveCard(args.cardId),
 });
+
+export const addComment = defineTool({
+  name: "add_comment",
+  description: "Adiciona um comentário a um card.",
+  readOnly: false,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    text: Type.String({ description: "Texto do comentário" }),
+  }),
+  run: (args, ctx) => ctx.trello.addComment(args.cardId, args.text),
+});

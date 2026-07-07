@@ -91,6 +91,18 @@ export type TrelloClient = {
   updateCard(cardId: string, fields: CardUpdateInput): Promise<Card>;
   moveCard(cardId: string, listId: string, pos?: number | string): Promise<Card>;
   archiveCard(cardId: string): Promise<Card>;
+  addComment(cardId: string, text: string): Promise<CardComment>;
+  addChecklist(cardId: string, name: string): Promise<Checklist>;
+  addChecklistItem(
+    checklistId: string,
+    name: string,
+    checked?: boolean,
+  ): Promise<CheckItem>;
+  setChecklistItemState(
+    cardId: string,
+    checkItemId: string,
+    state: "complete" | "incomplete",
+  ): Promise<CheckItem>;
 };
 
 export function createTrelloClient(http: TrelloHttp): TrelloClient {
@@ -152,6 +164,31 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
     },
     archiveCard(cardId) {
       return updateCard(cardId, { closed: true });
+    },
+    addComment(cardId, text) {
+      return http.request<CardComment>(`/1/cards/${cardId}/actions/comments`, {
+        method: "POST",
+        query: { text },
+      });
+    },
+    addChecklist(cardId, name) {
+      return http.request<Checklist>(`/1/cards/${cardId}/checklists`, {
+        method: "POST",
+        query: { name },
+      });
+    },
+    addChecklistItem(checklistId, name, checked) {
+      return http.request<CheckItem>(`/1/checklists/${checklistId}/checkItems`, {
+        method: "POST",
+        query: { name, checked },
+      });
+    },
+    setChecklistItemState(cardId, checkItemId, state) {
+      // Endpoint card-scoped: /1/cards/{idCard}/checkItem/{idCheckItem}.
+      return http.request<CheckItem>(
+        `/1/cards/${cardId}/checkItem/${checkItemId}`,
+        { method: "PUT", query: { state } },
+      );
     },
   };
 }

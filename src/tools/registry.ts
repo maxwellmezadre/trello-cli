@@ -1,6 +1,7 @@
 import type { Config } from "../config.js";
 import { createList, getBoard, getLists, listBoards } from "./boards.js";
 import {
+  addComment,
   archiveCard,
   createCard,
   getCard,
@@ -9,7 +10,12 @@ import {
   moveCard,
   updateCard,
 } from "./cards.js";
-import { getChecklists } from "./checklists.js";
+import {
+  addChecklist,
+  addChecklistItem,
+  getChecklists,
+  setChecklistItemState,
+} from "./checklists.js";
 import type { ToolDef } from "./define.js";
 
 export const allTools: ToolDef[] = [
@@ -27,6 +33,10 @@ export const allTools: ToolDef[] = [
   updateCard,
   moveCard,
   archiveCard,
+  addComment,
+  addChecklist,
+  addChecklistItem,
+  setChecklistItemState,
 ];
 
 /**
