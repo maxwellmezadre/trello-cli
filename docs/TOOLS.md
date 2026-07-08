@@ -20,6 +20,10 @@ registradas nesse modo.
 | `get_card_attachments` | `cardId` | Anexos, marcando uploads vs. links + URI `trello://`. |
 | `download_attachment` | `cardId`, `attachmentId`, `destDir?` | Baixa um anexo (auth OAuth para uploads). |
 | `download_all_card_attachments` | `cardId`, `destDir?`, `concurrency?` | Baixa todos + `_manifest.json`. |
+| `get_board_labels` | `boardId` | Labels de um board. |
+| `get_board_members` | `boardId` | Membros de um board. |
+| `get_custom_fields` | `boardId` | Definições de custom fields de um board. |
+| `get_card_custom_fields` | `cardId` | Valores de custom fields de um card. |
 
 ## Escrita
 
@@ -36,6 +40,10 @@ registradas nesse modo.
 | `set_checklist_item_state` | `cardId`, `checkItemId`, `state` (`complete\|incomplete`) | Marca/desmarca um item. |
 | `attach_url_to_card` | `cardId`, `url` | Anexa uma URL. |
 | `attach_file_to_card` | `cardId`, `filePath`, `name?` | Upload de arquivo local (multipart). |
+| `create_label` | `boardId`, `name`, `color?` | Cria uma label. |
+| `add_label_to_card` | `cardId`, `labelId` | Atribui uma label a um card. |
+| `assign_member_to_card` | `cardId`, `memberId` | Atribui um membro a um card. |
+| `set_card_custom_field` | `cardId`, `customFieldId`, `value`, `type?` (`text\|number\|checked\|date\|list`) | Define um custom field. |
 
 ## Resources MCP
 

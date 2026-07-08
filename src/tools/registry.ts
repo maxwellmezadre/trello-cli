@@ -24,6 +24,13 @@ import {
   setChecklistItemState,
 } from "./checklists.js";
 import type { ToolDef } from "./define.js";
+import {
+  getCardCustomFields,
+  getCustomFields,
+  setCardCustomField,
+} from "./fields.js";
+import { addLabelToCard, createLabel, getBoardLabels } from "./labels.js";
+import { assignMemberToCard, getBoardMembers } from "./members.js";
 import { search } from "./search.js";
 
 export const allTools: ToolDef[] = [
@@ -39,6 +46,10 @@ export const allTools: ToolDef[] = [
   getCardAttachments,
   downloadAttachment,
   downloadAllAttachments,
+  getBoardLabels,
+  getBoardMembers,
+  getCustomFields,
+  getCardCustomFields,
   // Escrita.
   createList,
   createCard,
@@ -51,6 +62,10 @@ export const allTools: ToolDef[] = [
   setChecklistItemState,
   attachUrlToCard,
   attachFileToCard,
+  createLabel,
+  addLabelToCard,
+  assignMemberToCard,
+  setCardCustomField,
 ];
 
 /**

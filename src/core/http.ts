@@ -16,7 +16,11 @@ export type FetchResponse = {
 
 export type FetchLike = (
   url: string | URL,
-  init?: { method?: string; body?: FormData },
+  init?: {
+    method?: string;
+    body?: FormData | string;
+    headers?: Record<string, string>;
+  },
 ) => Promise<FetchResponse>;
 
 /** Erro tipado, não-fatal (AR-7). Nunca inclui a URL — ela carrega key/token. */
@@ -88,6 +92,8 @@ export type TrelloRequestOptions = {
   query?: Record<string, string | number | boolean | undefined>;
   /** Corpo multipart (upload de arquivo). key/token seguem na query. */
   body?: FormData;
+  /** Corpo JSON (ex. custom field item). key/token seguem na query. */
+  json?: unknown;
 };
 
 export type TrelloHttp = {
@@ -168,9 +174,20 @@ export function createTrelloHttp(
     const url = buildUrl(baseUrl, path, options?.query, auth.apiKey, auth.token);
     const method = options?.method ?? "GET";
 
+    const init: {
+      method: string;
+      body?: FormData | string;
+      headers?: Record<string, string>;
+    } = { method };
+    if (options?.body) init.body = options.body;
+    if (options?.json !== undefined) {
+      init.body = JSON.stringify(options.json);
+      init.headers = { "content-type": "application/json" };
+    }
+
     for (let attempt = 1; ; attempt++) {
       await rateLimiter.take();
-      const response = await fetchImpl(url, { method, body: options?.body });
+      const response = await fetchImpl(url, init);
       if (response.ok) return parseBody<T>(response);
 
       const retryable = response.status === 429 || response.status >= 500;

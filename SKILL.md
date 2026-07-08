@@ -53,6 +53,10 @@ Leitura (disponíveis também em read-only):
 | `get_card_attachments` | `trello attachments <cardId>` | Anexos (marca uploads) |
 | `download_attachment` | `trello download <cardId> <attachmentId>` | Baixa um anexo |
 | `download_all_card_attachments` | `trello download-all <cardId>` | Baixa todos + `_manifest.json` |
+| `get_board_labels` | `trello labels <boardId>` | Labels de um board |
+| `get_board_members` | `trello members <boardId>` | Membros de um board |
+| `get_custom_fields` | `trello custom-fields <boardId>` | Definições de custom fields |
+| `get_card_custom_fields` | `trello card-custom-fields <cardId>` | Valores de custom fields |
 
 Escrita (ausentes em read-only):
 
@@ -69,6 +73,10 @@ Escrita (ausentes em read-only):
 | `set_checklist_item_state` | `trello set-item-state <cardId> <checkItemId> <complete\|incomplete>` |
 | `attach_url_to_card` | `trello attach-url <cardId> <url>` |
 | `attach_file_to_card` | `trello attach-file <cardId> <filePath> [--name]` |
+| `create_label` | `trello create-label <boardId> <name> [--color]` |
+| `add_label_to_card` | `trello add-label <cardId> <labelId>` |
+| `assign_member_to_card` | `trello assign-member <cardId> <memberId>` |
+| `set_card_custom_field` | `trello set-custom-field <cardId> <fieldId> <value> [--type]` |
 
 Exportação (CLI-only): `trello archive-board <boardId> [--out ./dir]` — grava
 `board.json` (cards + comentários + checklists) e baixa os anexos de cada card,

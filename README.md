@@ -103,7 +103,7 @@ Configuração para o Claude Desktop / Claude Code (`mcpServers`):
 }
 ```
 
-As 22 tools ficam disponíveis ao agente; anexos também como resources
+As 30 tools ficam disponíveis ao agente; anexos também como resources
 `trello://cards/{cardId}/attachments/{attachmentId}`.
 
 ## Variáveis de ambiente
@@ -128,7 +128,7 @@ Referência completa: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Tools
 
-11 de leitura (também em read-only) e 11 de escrita. Resumo:
+15 de leitura (também em read-only) e 15 de escrita. Resumo:
 
 - **Boards/listas/cards:** `list_boards`, `get_board`, `get_lists`,
   `get_cards_in_list`, `get_card`, `create_list`, `create_card`, `update_card`,
@@ -138,6 +138,9 @@ Referência completa: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
   `add_comment`.
 - **Anexos:** `get_card_attachments`, `download_attachment`,
   `download_all_card_attachments`, `attach_url_to_card`, `attach_file_to_card`.
+- **Labels/membros/campos:** `get_board_labels`, `create_label`,
+  `add_label_to_card`, `get_board_members`, `assign_member_to_card`,
+  `get_custom_fields`, `get_card_custom_fields`, `set_card_custom_field`.
 - **Busca:** `search`.
 
 Parâmetros de cada tool: [docs/TOOLS.md](docs/TOOLS.md).

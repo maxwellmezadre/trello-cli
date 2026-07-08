@@ -63,6 +63,40 @@ export type Checklist = {
   checkItems: CheckItem[];
 };
 
+export type Label = {
+  id: string;
+  name: string;
+  color: string | null;
+  idBoard: string;
+};
+
+export type Member = {
+  id: string;
+  fullName: string;
+  username: string;
+};
+
+export type CustomField = {
+  id: string;
+  name: string;
+  type: string;
+  options?: Array<{ id: string; value: { text?: string } }>;
+};
+
+export type CustomFieldItem = {
+  id: string;
+  idCustomField: string;
+  idValue?: string;
+  value?: Record<string, string>;
+};
+
+export type CustomFieldValueType =
+  | "text"
+  | "number"
+  | "checked"
+  | "date"
+  | "list";
+
 export type Attachment = {
   id: string;
   name: string;
@@ -137,6 +171,23 @@ export type TrelloClient = {
     filePath: string,
     name?: string,
   ): Promise<Attachment>;
+  getBoardLabels(boardId: string): Promise<Label[]>;
+  createLabel(input: {
+    idBoard: string;
+    name: string;
+    color?: string;
+  }): Promise<Label>;
+  addLabelToCard(cardId: string, labelId: string): Promise<unknown>;
+  getBoardMembers(boardId: string): Promise<Member[]>;
+  assignMemberToCard(cardId: string, memberId: string): Promise<unknown>;
+  getCustomFields(boardId: string): Promise<CustomField[]>;
+  getCardCustomFields(cardId: string): Promise<CustomFieldItem[]>;
+  setCardCustomField(
+    cardId: string,
+    customFieldId: string,
+    value: string,
+    type?: CustomFieldValueType,
+  ): Promise<unknown>;
 };
 
 const BOARDS_KEY = "/1/members/me/boards";
@@ -286,6 +337,48 @@ export function createTrelloClient(
         method: "POST",
         body: form,
       });
+    },
+    getBoardLabels(boardId) {
+      return http.request<Label[]>(`/1/boards/${boardId}/labels`);
+    },
+    createLabel(input) {
+      return http.request<Label>("/1/labels", {
+        method: "POST",
+        query: { idBoard: input.idBoard, name: input.name, color: input.color },
+      });
+    },
+    addLabelToCard(cardId, labelId) {
+      return http.request(`/1/cards/${cardId}/idLabels`, {
+        method: "POST",
+        query: { value: labelId },
+      });
+    },
+    getBoardMembers(boardId) {
+      return http.request<Member[]>(`/1/boards/${boardId}/members`);
+    },
+    assignMemberToCard(cardId, memberId) {
+      return http.request(`/1/cards/${cardId}/idMembers`, {
+        method: "POST",
+        query: { value: memberId },
+      });
+    },
+    getCustomFields(boardId) {
+      return http.request<CustomField[]>(`/1/boards/${boardId}/customFields`);
+    },
+    getCardCustomFields(cardId) {
+      return http.request<CustomFieldItem[]>(
+        `/1/cards/${cardId}/customFieldItems`,
+      );
+    },
+    setCardCustomField(cardId, customFieldId, value, type = "text") {
+      // Item de custom field exige body JSON tipado. Para listas (dropdown), o
+      // valor é o id da opção (idValue); para os demais tipos, o valor tipado.
+      const json =
+        type === "list" ? { idValue: value } : { value: { [type]: value } };
+      return http.request(
+        `/1/cards/${cardId}/customField/${customFieldId}/item`,
+        { method: "PUT", json },
+      );
     },
   };
 }

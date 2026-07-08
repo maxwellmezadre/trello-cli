@@ -260,6 +260,70 @@ export async function runCli(argv: string[], version: string): Promise<void> {
       ),
     );
 
+  // ── Labels, members, custom fields ────────────────────────────────────────
+
+  command("labels <boardId>")
+    .description("Lista as labels de um board")
+    .action((boardId, options) =>
+      invoke("get_board_labels", { boardId }, options.json ?? false),
+    );
+
+  command("create-label <boardId> <name>")
+    .description("Cria uma label")
+    .option("--color <color>", "cor (ex. green, red)")
+    .action((boardId, name, options) =>
+      invoke(
+        "create_label",
+        { boardId, name, color: options.color },
+        options.json ?? false,
+      ),
+    );
+
+  command("add-label <cardId> <labelId>")
+    .description("Atribui uma label a um card")
+    .action((cardId, labelId, options) =>
+      invoke("add_label_to_card", { cardId, labelId }, options.json ?? false),
+    );
+
+  command("members <boardId>")
+    .description("Lista os membros de um board")
+    .action((boardId, options) =>
+      invoke("get_board_members", { boardId }, options.json ?? false),
+    );
+
+  command("assign-member <cardId> <memberId>")
+    .description("Atribui um membro a um card")
+    .action((cardId, memberId, options) =>
+      invoke(
+        "assign_member_to_card",
+        { cardId, memberId },
+        options.json ?? false,
+      ),
+    );
+
+  command("custom-fields <boardId>")
+    .description("Lista as definições de custom fields de um board")
+    .action((boardId, options) =>
+      invoke("get_custom_fields", { boardId }, options.json ?? false),
+    );
+
+  command("card-custom-fields <cardId>")
+    .description("Lê os valores de custom fields de um card")
+    .action((cardId, options) =>
+      invoke("get_card_custom_fields", { cardId }, options.json ?? false),
+    );
+
+  command("set-custom-field <cardId> <customFieldId> <value>")
+    .description("Define um custom field (--type text|number|checked|date|list)")
+    .option("--type <type>", "tipo do campo", "text")
+    .action((cardId, customFieldId, value, options) =>
+      invoke(
+        "set_card_custom_field",
+        { cardId, customFieldId, value, type: options.type },
+        options.json ?? false,
+      ),
+    );
+
   // Orquestração CLI-only (não é uma tool MCP): exporta o board inteiro.
   command("archive-board <boardId>")
     .description("Exporta um board inteiro (cards + anexos) para disco")
