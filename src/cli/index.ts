@@ -260,5 +260,25 @@ export async function runCli(argv: string[], version: string): Promise<void> {
       ),
     );
 
+  // Orquestração CLI-only (não é uma tool MCP): exporta o board inteiro.
+  command("archive-board <boardId>")
+    .description("Exporta um board inteiro (cards + anexos) para disco")
+    .option("--out <dir>", "diretório de saída", "./trello-export")
+    .action(async (boardId, options) => {
+      try {
+        const ctx = createContext(loadConfig());
+        const { archiveBoard } = await import("./archive.js");
+        const summary = await archiveBoard(ctx, boardId, options.out);
+        console.log(
+          options.json
+            ? JSON.stringify(summary, null, 2)
+            : `Exported ${summary.cards} cards to ${summary.outDir} (${summary.failedAttachments} attachment failures)`,
+        );
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      }
+    });
+
   await program.parseAsync(argv);
 }

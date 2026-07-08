@@ -107,6 +107,7 @@ export type TrelloClient = {
   getBoard(boardId: string, opts?: { withLists?: boolean }): Promise<Board>;
   getLists(boardId: string): Promise<List[]>;
   getCardsInList(listId: string): Promise<Card[]>;
+  getBoardCards(boardId: string): Promise<Card[]>;
   getCard(cardId: string): Promise<Card>;
   getComments(cardId: string): Promise<CardComment[]>;
   getChecklists(cardId: string): Promise<Checklist[]>;
@@ -158,6 +159,9 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
     },
     getCardsInList(listId) {
       return http.request<Card[]>(`/1/lists/${listId}/cards`);
+    },
+    getBoardCards(boardId) {
+      return http.request<Card[]>(`/1/boards/${boardId}/cards`);
     },
     getCard(cardId) {
       return http.request<Card>(`/1/cards/${cardId}`);
