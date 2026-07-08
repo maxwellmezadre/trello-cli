@@ -7,13 +7,11 @@ const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 ) as { version: string };
 
-// ponytail: parsing completo da CLU (commander) chega na etapa 016. Por ora,
-// `--version` e o subcomando `mcp`. Lazy-import por modo mantém o cold start
-// baixo (NFR-1) — só o caminho usado carrega suas dependências.
+// Lazy-import por modo mantém o cold start baixo (NFR-1): o servidor MCP não
+// carrega o commander e vice-versa. `mcp` é tratado direto (fast path); todo o
+// resto vai para a CLI (commander).
 const arg = process.argv[2];
-if (arg === "--version" || arg === "-v") {
-  console.log(pkg.version);
-} else if (arg === "mcp") {
+if (arg === "mcp") {
   const [{ loadConfig }, { createContext }, { startMcpServer }] =
     await Promise.all([
       import("./config.js"),
@@ -23,5 +21,6 @@ if (arg === "--version" || arg === "-v") {
   const ctx = createContext(loadConfig());
   await startMcpServer(ctx, pkg.version);
 } else {
-  console.log(`trello-cli ${pkg.version}`);
+  const { runCli } = await import("./cli/index.js");
+  await runCli(process.argv, pkg.version);
 }
