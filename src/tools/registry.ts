@@ -1,5 +1,7 @@
 import type { Config } from "../config.js";
 import {
+  attachFileToCard,
+  attachUrlToCard,
   downloadAllAttachments,
   downloadAttachment,
   getCardAttachments,
@@ -47,6 +49,8 @@ export const allTools: ToolDef[] = [
   addChecklist,
   addChecklistItem,
   setChecklistItemState,
+  attachUrlToCard,
+  attachFileToCard,
 ];
 
 /**

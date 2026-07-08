@@ -54,3 +54,29 @@ export const downloadAllAttachments = defineTool({
   }),
   run: (args, ctx) => downloadAllCardAttachments(ctx, args),
 });
+
+export const attachUrlToCard = defineTool({
+  name: "attach_url_to_card",
+  description: "Anexa uma URL a um card.",
+  readOnly: false,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    url: Type.String({ description: "URL a anexar" }),
+  }),
+  run: (args, ctx) => ctx.trello.attachUrlToCard(args.cardId, args.url),
+});
+
+export const attachFileToCard = defineTool({
+  name: "attach_file_to_card",
+  description: "Faz upload de um arquivo local como anexo de um card.",
+  readOnly: false,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    filePath: Type.String({ description: "Caminho do arquivo local" }),
+    name: Type.Optional(
+      Type.String({ description: "Nome do anexo (default: basename)" }),
+    ),
+  }),
+  run: (args, ctx) =>
+    ctx.trello.attachFileToCard(args.cardId, args.filePath, args.name),
+});

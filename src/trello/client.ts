@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import type { TrelloHttp } from "../core/http.js";
 
 // Domínio puro (AR-3): só conhece o cliente HTTP. Nada de MCP/CLI aqui.
@@ -127,6 +129,12 @@ export type TrelloClient = {
   ): Promise<CheckItem>;
   search(input: SearchInput): Promise<SearchResult>;
   getCardAttachments(cardId: string): Promise<Attachment[]>;
+  attachUrlToCard(cardId: string, url: string): Promise<Attachment>;
+  attachFileToCard(
+    cardId: string,
+    filePath: string,
+    name?: string,
+  ): Promise<Attachment>;
 };
 
 export function createTrelloClient(http: TrelloHttp): TrelloClient {
@@ -227,6 +235,23 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
     },
     getCardAttachments(cardId) {
       return http.request<Attachment[]>(`/1/cards/${cardId}/attachments`);
+    },
+    attachUrlToCard(cardId, url) {
+      return http.request<Attachment>(`/1/cards/${cardId}/attachments`, {
+        method: "POST",
+        query: { url },
+      });
+    },
+    async attachFileToCard(cardId, filePath, name) {
+      const data = await readFile(filePath);
+      const form = new FormData();
+      // `file` é o campo esperado pela Trello; content-type/boundary vêm
+      // automaticamente do FormData nativo (Bun e Node ≥ 18).
+      form.append("file", new Blob([data]), name ?? basename(filePath));
+      return http.request<Attachment>(`/1/cards/${cardId}/attachments`, {
+        method: "POST",
+        body: form,
+      });
     },
   };
 }
