@@ -112,25 +112,26 @@ export function sanitizeFilename(name: string): string {
 }
 
 /**
- * Baixa uma URL de anexo para o disco em stream, com guarda de SSRF (allowlist
- * de host, verificada ANTES do fetch) e teto de tamanho (por Content-Length e
- * durante o stream). Nunca deixa arquivo parcial em caso de falha.
+ * Aplica as guardas de segurança e abre o stream do anexo: allowlist de host
+ * (SSRF, ANTES do fetch), header OAuth quando upload, e teto por
+ * Content-Length. Retorna o reader do corpo + o cap para checagem em stream.
+ * Consumido por {@link downloadToFile} (disco) e {@link readAttachmentBytes}
+ * (memória) — a lógica sensível fica num único ponto.
  */
-export async function downloadToFile(
-  attachment: { url: string; name: string },
-  destDir: string,
+async function openAttachment(
+  url: string,
   config: DownloadConfig,
   deps?: { fetch?: DownloadFetch },
-): Promise<{ path: string; bytes: number }> {
+) {
   // SSRF: host precisa estar na allowlist — checado ANTES de qualquer fetch.
-  const host = hostname(attachment.url);
+  const host = hostname(url);
   if (!config.allowedAttachmentHosts.includes(host)) {
     throw new AttachmentDownloadError(`Host not allowed for download: ${host}`);
   }
 
-  const headers = buildAttachmentAuthHeaders(attachment.url, config);
+  const headers = buildAttachmentAuthHeaders(url, config);
   const doFetch = deps?.fetch ?? (globalThis.fetch as unknown as DownloadFetch);
-  const response = await doFetch(attachment.url, { headers });
+  const response = await doFetch(url, { headers });
   if (!response.ok) {
     throw new AttachmentDownloadError(
       `Download failed with HTTP ${response.status}`,
@@ -148,10 +149,28 @@ export async function downloadToFile(
     throw new AttachmentDownloadError("Attachment response has no body");
   }
 
+  return {
+    reader: response.body.getReader(),
+    cap,
+    contentType: response.headers.get("content-type"),
+  };
+}
+
+/**
+ * Baixa uma URL de anexo para o disco em stream, com guarda de SSRF e teto de
+ * tamanho (por Content-Length e durante o stream). Nunca deixa arquivo parcial.
+ */
+export async function downloadToFile(
+  attachment: { url: string; name: string },
+  destDir: string,
+  config: DownloadConfig,
+  deps?: { fetch?: DownloadFetch },
+): Promise<{ path: string; bytes: number }> {
+  const { reader, cap } = await openAttachment(attachment.url, config, deps);
+
   await mkdir(destDir, { recursive: true });
   const filePath = join(destDir, sanitizeFilename(attachment.name));
   const handle = await open(filePath, "w");
-  const reader = response.body.getReader();
   let written = 0;
   try {
     for (;;) {
@@ -173,6 +192,44 @@ export async function downloadToFile(
   }
   await handle.close();
   return { path: filePath, bytes: written };
+}
+
+/**
+ * Baixa um anexo para a memória (mesmas guardas do {@link downloadToFile}).
+ * Usado por resources MCP e imagens inline — payloads pequenos, com cap.
+ */
+export async function readAttachmentBytes(
+  attachment: { url: string },
+  config: DownloadConfig,
+  deps?: { fetch?: DownloadFetch },
+): Promise<{ bytes: Uint8Array; contentType: string | null }> {
+  const { reader, cap, contentType } = await openAttachment(
+    attachment.url,
+    config,
+    deps,
+  );
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > cap) {
+      throw new AttachmentDownloadError(
+        `Attachment exceeds size cap: > ${cap} bytes`,
+      );
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { bytes, contentType };
 }
 
 /**
@@ -302,4 +359,90 @@ export async function downloadAllCardAttachments(
     JSON.stringify(manifest, null, 2),
   );
   return manifest;
+}
+
+// ── MCP resources & imagens inline ────────────────────────────────────────
+
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Lê um anexo para servir como resource MCP: bytes em base64 + mimeType.
+ * Reusa o pipeline com guardas (auth/allowlist/cap) de {@link readAttachmentBytes}.
+ */
+export async function readCardAttachmentResource(
+  ctx: Ctx,
+  cardId: string,
+  attachmentId: string,
+  deps?: { fetch?: DownloadFetch },
+): Promise<{ mimeType: string; base64: string; name: string }> {
+  const attachments = await ctx.trello.getCardAttachments(cardId);
+  const attachment = attachments.find(
+    (candidate) => candidate.id === attachmentId,
+  );
+  if (!attachment) {
+    throw new AttachmentDownloadError(
+      `Attachment ${attachmentId} not found on card ${cardId}`,
+    );
+  }
+
+  const { bytes, contentType } = await readAttachmentBytes(
+    attachment,
+    ctx.config,
+    deps,
+  );
+  return {
+    mimeType: contentType ?? attachment.mimeType ?? "application/octet-stream",
+    base64: Buffer.from(bytes).toString("base64"),
+    name: attachment.name,
+  };
+}
+
+export type InlineImage = { mimeType: string; base64: string };
+
+/**
+ * Coleta imagens pequenas de um card para inline no `get_card` (MCP).
+ * Gate (F-15): só quando `downloadImages` está ligado, e apenas anexos que
+ * sejam uploads, de host permitido, com mimeType de imagem e tamanho (por
+ * metadado) dentro de `maxInlineImageBytes`. Retorna `[]` se o gate barrar
+ * tudo — sem baixar nada.
+ */
+export async function collectInlineImages(
+  ctx: Ctx,
+  cardId: string,
+  deps?: { fetch?: DownloadFetch },
+): Promise<InlineImage[]> {
+  const config = ctx.config;
+  if (!config.downloadImages) return [];
+
+  const attachments = await ctx.trello.getCardAttachments(cardId);
+  const candidates = attachments.filter(
+    (attachment) =>
+      isUploadedAttachment(attachment.url) &&
+      config.allowedAttachmentHosts.includes(safeHostname(attachment.url)) &&
+      (attachment.mimeType?.startsWith("image/") ?? false) &&
+      attachment.bytes !== null &&
+      attachment.bytes <= config.maxInlineImageBytes,
+  );
+
+  const images: InlineImage[] = [];
+  for (const candidate of candidates) {
+    const { bytes, contentType } = await readAttachmentBytes(
+      candidate,
+      config,
+      deps,
+    );
+    // Guarda extra: o tamanho real também respeita o cap.
+    if (bytes.byteLength > config.maxInlineImageBytes) continue;
+    images.push({
+      mimeType: contentType ?? candidate.mimeType ?? "image/png",
+      base64: Buffer.from(bytes).toString("base64"),
+    });
+  }
+  return images;
 }
