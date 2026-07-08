@@ -27,3 +27,19 @@ jobs:
       - run: npm install
       # Prova que Node ≥ 18 carrega o CLI (TS ESM) via tsx.
       - run: npx --yes tsx src/bin.ts --version
+
+  integration:
+    name: Real download integration (gated)
+    # Só em push no repo (não em PRs de fork, que não têm secrets). O teste se
+    # auto-pula se os secrets não estiverem configurados.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun test test/integration/
+        env:
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          TRELLO_TEST_CARD_ID: ${{ secrets.TRELLO_TEST_CARD_ID }}
