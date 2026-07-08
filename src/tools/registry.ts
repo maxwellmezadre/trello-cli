@@ -1,5 +1,9 @@
 import type { Config } from "../config.js";
-import { downloadAttachment, getCardAttachments } from "./attachments.js";
+import {
+  downloadAllAttachments,
+  downloadAttachment,
+  getCardAttachments,
+} from "./attachments.js";
 import { createList, getBoard, getLists, listBoards } from "./boards.js";
 import {
   addComment,
@@ -32,6 +36,7 @@ export const allTools: ToolDef[] = [
   search,
   getCardAttachments,
   downloadAttachment,
+  downloadAllAttachments,
   // Escrita.
   createList,
   createCard,

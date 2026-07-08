@@ -1,4 +1,4 @@
-import { mkdir, open, rm } from "node:fs/promises";
+import { mkdir, open, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Config } from "../config.js";
 import type { Ctx } from "../context.js";
@@ -202,4 +202,104 @@ export async function downloadCardAttachment(
     name: attachment.name,
     isUpload: isUploadedAttachment(attachment.url),
   };
+}
+
+// ── Bulk download ─────────────────────────────────────────────────────────
+
+export type DownloadManifest = {
+  ok: Array<{ id: string; name: string; path: string; bytes: number }>;
+  failed: Array<{ id: string; name: string; error: string }>;
+  summary: { total: number; ok: number; failed: number };
+};
+
+/**
+ * Executa `worker` sobre cada item com no máximo `limit` em paralelo,
+ * preservando a ordem. Semáforo in-repo — evita uma dependência.
+ *
+ * ponytail: `limit` runners puxando de um índice compartilhado; troca por
+ * p-limit se precisar de features (cancelamento, prioridade).
+ */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const runnerCount = Math.min(Math.max(1, limit), items.length);
+  const runners = Array.from({ length: runnerCount }, async () => {
+    for (;;) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index] as T, index);
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
+/**
+ * Baixa todos os anexos de um card com concorrência limitada (NFR-3) e
+ * tolerância a falhas (NFR-6): uma falha não interrompe as demais e é
+ * registrada em `_manifest.json`.
+ */
+export async function downloadAllCardAttachments(
+  ctx: Ctx,
+  params: { cardId: string; destDir?: string; concurrency?: number },
+  deps?: { fetch?: DownloadFetch },
+): Promise<DownloadManifest> {
+  const attachments = await ctx.trello.getCardAttachments(params.cardId);
+  const destDir = params.destDir ?? join(ctx.config.downloadDir, params.cardId);
+  const limit = Math.max(
+    1,
+    params.concurrency ?? ctx.config.downloadConcurrency,
+  );
+  await mkdir(destDir, { recursive: true });
+
+  const ok: DownloadManifest["ok"] = [];
+  const failed: DownloadManifest["failed"] = [];
+
+  const entries = await mapWithConcurrency(attachments, limit, async (att) => {
+    try {
+      const written = await downloadToFile(att, destDir, ctx.config, deps);
+      return {
+        kind: "ok" as const,
+        id: att.id,
+        name: att.name,
+        path: written.path,
+        bytes: written.bytes,
+      };
+    } catch (error) {
+      return {
+        kind: "failed" as const,
+        id: att.id,
+        name: att.name,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  for (const entry of entries) {
+    if (entry.kind === "ok") {
+      ok.push({
+        id: entry.id,
+        name: entry.name,
+        path: entry.path,
+        bytes: entry.bytes,
+      });
+    } else {
+      failed.push({ id: entry.id, name: entry.name, error: entry.error });
+    }
+  }
+
+  const manifest: DownloadManifest = {
+    ok,
+    failed,
+    summary: { total: attachments.length, ok: ok.length, failed: failed.length },
+  };
+  await writeFile(
+    join(destDir, "_manifest.json"),
+    JSON.stringify(manifest, null, 2),
+  );
+  return manifest;
 }

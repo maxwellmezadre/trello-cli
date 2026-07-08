@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import {
+  downloadAllCardAttachments,
   downloadCardAttachment,
   enrichAttachment,
 } from "../trello/attachments.js";
@@ -35,4 +36,21 @@ export const downloadAttachment = defineTool({
     ),
   }),
   run: (args, ctx) => downloadCardAttachment(ctx, args),
+});
+
+export const downloadAllAttachments = defineTool({
+  name: "download_all_card_attachments",
+  description:
+    "Baixa todos os anexos de um card com concorrência limitada e escreve _manifest.json.",
+  readOnly: true,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    destDir: Type.Optional(
+      Type.String({ description: "Diretório de destino (default: config)" }),
+    ),
+    concurrency: Type.Optional(
+      Type.Number({ description: "Downloads simultâneos (default: config)" }),
+    ),
+  }),
+  run: (args, ctx) => downloadAllCardAttachments(ctx, args),
 });
