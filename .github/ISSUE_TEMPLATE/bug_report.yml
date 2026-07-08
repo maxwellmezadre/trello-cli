@@ -1,0 +1,28 @@
+name: Bug report
+description: Reporte um problema no trello-cli
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o comportamento observado e o esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Passos para reproduzir
+      description: Comando(s) e sequência que levam ao problema.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão e runtime
+      placeholder: "trello 0.1.0 · Bun 1.x / Node 20"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs relevantes
+      description: "⚠️ Nunca cole TRELLO_API_KEY / TRELLO_TOKEN nem URLs com key/token."
