@@ -8,7 +8,8 @@ export const getBoardLabels = defineTool({
   input: Type.Object({
     boardId: Type.String({ description: "ID do board" }),
   }),
-  run: (args, ctx) => ctx.trello.getBoardLabels(args.boardId),
+  run: async (args, ctx) =>
+    ctx.trello.getBoardLabels(await ctx.trello.resolveBoard(args.boardId)),
 });
 
 export const createLabel = defineTool({
@@ -22,9 +23,9 @@ export const createLabel = defineTool({
       Type.String({ description: "Cor (ex. green, red, blue) ou vazio" }),
     ),
   }),
-  run: (args, ctx) =>
+  run: async (args, ctx) =>
     ctx.trello.createLabel({
-      idBoard: args.boardId,
+      idBoard: await ctx.trello.resolveBoard(args.boardId),
       name: args.name,
       color: args.color,
     }),

@@ -8,7 +8,8 @@ export const getCustomFields = defineTool({
   input: Type.Object({
     boardId: Type.String({ description: "ID do board" }),
   }),
-  run: (args, ctx) => ctx.trello.getCustomFields(args.boardId),
+  run: async (args, ctx) =>
+    ctx.trello.getCustomFields(await ctx.trello.resolveBoard(args.boardId)),
 });
 
 export const getCardCustomFields = defineTool({

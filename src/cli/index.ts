@@ -332,7 +332,8 @@ export async function runCli(argv: string[], version: string): Promise<void> {
       try {
         const ctx = createContext(loadConfig());
         const { archiveBoard } = await import("./archive.js");
-        const summary = await archiveBoard(ctx, boardId, options.out);
+        const resolvedBoardId = await ctx.trello.resolveBoard(boardId);
+        const summary = await archiveBoard(ctx, resolvedBoardId, options.out);
         console.log(
           options.json
             ? JSON.stringify(summary, null, 2)

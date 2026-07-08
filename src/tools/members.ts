@@ -8,7 +8,8 @@ export const getBoardMembers = defineTool({
   input: Type.Object({
     boardId: Type.String({ description: "ID do board" }),
   }),
-  run: (args, ctx) => ctx.trello.getBoardMembers(args.boardId),
+  run: async (args, ctx) =>
+    ctx.trello.getBoardMembers(await ctx.trello.resolveBoard(args.boardId)),
 });
 
 export const assignMemberToCard = defineTool({

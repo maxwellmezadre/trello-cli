@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import type { TtlLruCache } from "../core/cache.js";
 import type { TrelloHttp } from "../core/http.js";
+import { isTrelloId, pickByName } from "./resolve.js";
 
 // Domínio puro (AR-3): só conhece o cliente HTTP. Nada de MCP/CLI aqui.
 // Tipos mínimos — apenas os campos que consumimos.
@@ -188,6 +189,9 @@ export type TrelloClient = {
     value: string,
     type?: CustomFieldValueType,
   ): Promise<unknown>;
+  resolveBoard(value: string): Promise<string>;
+  resolveList(boardId: string, value: string): Promise<string>;
+  resolveCard(boardId: string, value: string): Promise<string>;
 };
 
 const BOARDS_KEY = "/1/members/me/boards";
@@ -379,6 +383,28 @@ export function createTrelloClient(
         `/1/cards/${cardId}/customField/${customFieldId}/item`,
         { method: "PUT", json },
       );
+    },
+    async resolveBoard(value) {
+      if (isTrelloId(value)) return value;
+      const boards = await cachedGet(BOARDS_KEY, () =>
+        http.request<Board[]>(BOARDS_KEY),
+      );
+      return pickByName(boards, value, "Board");
+    },
+    async resolveList(boardId, value) {
+      if (isTrelloId(value)) return value;
+      const lists = await cachedGet(`/1/boards/${boardId}/lists`, () =>
+        http.request<List[]>(`/1/boards/${boardId}/lists`),
+      );
+      return pickByName(lists, value, "List");
+    },
+    async resolveCard(boardId, value) {
+      if (isTrelloId(value)) return value;
+      const result = await http.request<SearchResult>("/1/search", {
+        query: { query: value, modelTypes: "cards", cards_limit: 50 },
+      });
+      const inBoard = result.cards.filter((card) => card.idBoard === boardId);
+      return pickByName(inBoard, value, "Card");
     },
   };
 }
