@@ -102,6 +102,8 @@ export async function startMcpServer(ctx: Ctx, version: string): Promise<void> {
   });
 
   await server.connect(new StdioServerTransport());
+  // Log em stderr: stdout permanece 100% JSON-RPC (NFR-8).
+  ctx.log.info(`trello-cli MCP server ready (${tools.length} tools)`);
 }
 
 function toolError(message: string) {

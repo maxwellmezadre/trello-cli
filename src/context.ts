@@ -1,16 +1,17 @@
 import type { Config } from "./config.js";
 import { TtlLruCache } from "./core/cache.js";
 import { createTrelloHttp, type HttpDeps } from "./core/http.js";
+import { createLogger, type Logger } from "./core/logger.js";
 import { createTrelloClient, type TrelloClient } from "./trello/client.js";
 
 const CACHE_MAX_ENTRIES = 256;
 
 // Contexto de injeção (AR-6): colaboradores passados explicitamente, sem
-// singletons globais. Cresce conforme as etapas — cache (019) e logger (020)
-// entram aqui quando existirem.
+// singletons globais.
 export type Ctx = {
   config: Config;
   trello: TrelloClient;
+  log: Logger;
 };
 
 export function createContext(
@@ -22,5 +23,9 @@ export function createContext(
     httpDeps,
   );
   const cache = new TtlLruCache<unknown>(config.cacheTtlMs, CACHE_MAX_ENTRIES);
-  return { config, trello: createTrelloClient(http, cache) };
+  const log = createLogger({
+    logFile: config.logFile,
+    secrets: [config.apiKey, config.token],
+  });
+  return { config, trello: createTrelloClient(http, cache), log };
 }
