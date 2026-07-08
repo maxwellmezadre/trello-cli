@@ -7,6 +7,8 @@ projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-08
+
 ### Added
 
 - Núcleo compartilhado: `TrelloClient` (leitura + escrita), rate limiter com
@@ -22,4 +24,5 @@ projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Logger em stderr com redação de token; `SKILL.md`; documentação completa
   (README, ARCHITECTURE, CONFIGURATION, TOOLS, CLI, USAGE, PRD, ADRs).
 
-[Unreleased]: https://github.com/maxwellmezadre/trello-cli/commits/main
+[Unreleased]: https://github.com/maxwellmezadre/trello-cli/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/maxwellmezadre/trello-cli/releases/tag/v0.1.0

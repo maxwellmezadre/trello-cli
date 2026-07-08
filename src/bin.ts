@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 // Import estático de JSON: o bundler (Bun/tsx) embute a versão, então funciona
 // também no binário compilado (`bun build --compile`), onde não há
 // package.json ao lado do executável.

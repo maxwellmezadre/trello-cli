@@ -54,8 +54,9 @@ bun run build:binary   # gera ./trello
 Use `bun build --compile --target=bun-linux-x64` (e variantes) para outras
 plataformas.
 
-> **Planejado:** publicação em npm (`npx trello-cli ...` / `bunx trello-cli ...`)
-> e binários pré-compilados nas Releases. Veja os
+> **Planejado:** publicação em npm como `@maxwellmezadre/trello-cli`
+> (`npx @maxwellmezadre/trello-cli ...` / `bunx ...`) e binários pré-compilados
+> nas Releases (tag `v*` dispara o workflow). Veja os
 > [milestones M4](docs/PRD.md#10-milestones).
 
 ## Configuração
