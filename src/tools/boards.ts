@@ -1,12 +1,21 @@
 import { Type } from "@sinclair/typebox";
+import { isCompact, shapeBoard, shapeList } from "../trello/shape.js";
 import { defineTool } from "./define.js";
+
+const compactField = Type.Optional(
+  Type.Boolean({ description: "Retorna campos mínimos (default: env)" }),
+);
 
 export const listBoards = defineTool({
   name: "list_boards",
   description: "Lista os boards do usuário autenticado.",
   readOnly: true,
-  input: Type.Object({}),
-  run: (_args, ctx) => ctx.trello.listBoards(),
+  input: Type.Object({ compact: compactField }),
+  run: async (args, ctx) => {
+    const boards = await ctx.trello.listBoards();
+    const compact = isCompact(args.compact, ctx.config);
+    return boards.map((board) => shapeBoard(board, compact));
+  },
 });
 
 export const getBoard = defineTool({
@@ -18,9 +27,14 @@ export const getBoard = defineTool({
     withLists: Type.Optional(
       Type.Boolean({ description: "Incluir as listas abertas do board" }),
     ),
+    compact: compactField,
   }),
-  run: (args, ctx) =>
-    ctx.trello.getBoard(args.boardId, { withLists: args.withLists }),
+  run: async (args, ctx) => {
+    const board = await ctx.trello.getBoard(args.boardId, {
+      withLists: args.withLists,
+    });
+    return shapeBoard(board, isCompact(args.compact, ctx.config));
+  },
 });
 
 export const getLists = defineTool({
@@ -29,8 +43,13 @@ export const getLists = defineTool({
   readOnly: true,
   input: Type.Object({
     boardId: Type.String({ description: "ID do board" }),
+    compact: compactField,
   }),
-  run: (args, ctx) => ctx.trello.getLists(args.boardId),
+  run: async (args, ctx) => {
+    const lists = await ctx.trello.getLists(args.boardId);
+    const compact = isCompact(args.compact, ctx.config);
+    return lists.map((list) => shapeList(list, compact));
+  },
 });
 
 export const createList = defineTool({

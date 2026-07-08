@@ -1,5 +1,10 @@
 import { Type } from "@sinclair/typebox";
+import { isCompact, shapeCard } from "../trello/shape.js";
 import { defineTool } from "./define.js";
+
+const compactField = Type.Optional(
+  Type.Boolean({ description: "Retorna campos mínimos (default: env)" }),
+);
 
 export const getCardsInList = defineTool({
   name: "get_cards_in_list",
@@ -7,8 +12,13 @@ export const getCardsInList = defineTool({
   readOnly: true,
   input: Type.Object({
     listId: Type.String({ description: "ID da lista" }),
+    compact: compactField,
   }),
-  run: (args, ctx) => ctx.trello.getCardsInList(args.listId),
+  run: async (args, ctx) => {
+    const cards = await ctx.trello.getCardsInList(args.listId);
+    const compact = isCompact(args.compact, ctx.config);
+    return cards.map((card) => shapeCard(card, compact));
+  },
 });
 
 export const getCard = defineTool({
@@ -17,8 +27,12 @@ export const getCard = defineTool({
   readOnly: true,
   input: Type.Object({
     cardId: Type.String({ description: "ID do card" }),
+    compact: compactField,
   }),
-  run: (args, ctx) => ctx.trello.getCard(args.cardId),
+  run: async (args, ctx) => {
+    const card = await ctx.trello.getCard(args.cardId);
+    return shapeCard(card, isCompact(args.compact, ctx.config));
+  },
 });
 
 export const getComments = defineTool({

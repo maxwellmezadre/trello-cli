@@ -25,10 +25,12 @@ describe("runTool validation", () => {
   test("valid args reach the tool run", async () => {
     const getCard = toolNamed("get_card");
     const ctx = {
+      config: { compact: false },
       trello: { getCard: async (id: string) => ({ id }) },
     } as unknown as Ctx;
 
     const result = await runTool(getCard, { cardId: "C1" }, ctx);
+    // compact:false → shapeCard devolve o objeto inalterado.
     expect(result).toEqual({ id: "C1" });
   });
 });
