@@ -60,6 +60,15 @@ export type Checklist = {
   checkItems: CheckItem[];
 };
 
+export type Attachment = {
+  id: string;
+  name: string;
+  url: string;
+  bytes: number | null;
+  date: string;
+  mimeType: string | null;
+};
+
 export type SearchResult = {
   boards: Board[];
   cards: Card[];
@@ -117,6 +126,7 @@ export type TrelloClient = {
     state: "complete" | "incomplete",
   ): Promise<CheckItem>;
   search(input: SearchInput): Promise<SearchResult>;
+  getCardAttachments(cardId: string): Promise<Attachment[]>;
 };
 
 export function createTrelloClient(http: TrelloHttp): TrelloClient {
@@ -214,6 +224,9 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
           cards_limit: input.cardsLimit,
         },
       });
+    },
+    getCardAttachments(cardId) {
+      return http.request<Attachment[]>(`/1/cards/${cardId}/attachments`);
     },
   };
 }
