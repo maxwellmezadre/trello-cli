@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
+import type { TtlLruCache } from "../core/cache.js";
 import type { TrelloHttp } from "../core/http.js";
 
 // Domínio puro (AR-3): só conhece o cliente HTTP. Nada de MCP/CLI aqui.
@@ -138,7 +139,24 @@ export type TrelloClient = {
   ): Promise<Attachment>;
 };
 
-export function createTrelloClient(http: TrelloHttp): TrelloClient {
+const BOARDS_KEY = "/1/members/me/boards";
+
+export function createTrelloClient(
+  http: TrelloHttp,
+  cache?: TtlLruCache<unknown>,
+): TrelloClient {
+  // Só metadados de board/list são cacheados (leitura fria). Cards/anexos são
+  // dados quentes e ficam de fora (risco de staleness).
+  function cachedGet<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    if (!cache) return fetcher();
+    const hit = cache.get(key) as T | undefined;
+    if (hit !== undefined) return Promise.resolve(hit);
+    return fetcher().then((value) => {
+      cache.set(key, value);
+      return value;
+    });
+  }
+
   const updateCard = (cardId: string, fields: CardUpdateInput): Promise<Card> =>
     http.request<Card>(`/1/cards/${cardId}`, {
       method: "PUT",
@@ -147,15 +165,20 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
 
   return {
     listBoards() {
-      return http.request<Board[]>("/1/members/me/boards");
+      return cachedGet(BOARDS_KEY, () => http.request<Board[]>(BOARDS_KEY));
     },
     getBoard(boardId, opts) {
-      return http.request<Board>(`/1/boards/${boardId}`, {
-        query: { lists: opts?.withLists ? "open" : undefined },
-      });
+      const key = `/1/boards/${boardId}?lists=${opts?.withLists ? "open" : "none"}`;
+      return cachedGet(key, () =>
+        http.request<Board>(`/1/boards/${boardId}`, {
+          query: { lists: opts?.withLists ? "open" : undefined },
+        }),
+      );
     },
     getLists(boardId) {
-      return http.request<List[]>(`/1/boards/${boardId}/lists`);
+      return cachedGet(`/1/boards/${boardId}/lists`, () =>
+        http.request<List[]>(`/1/boards/${boardId}/lists`),
+      );
     },
     getCardsInList(listId) {
       return http.request<Card[]>(`/1/lists/${listId}/cards`);
@@ -177,10 +200,17 @@ export function createTrelloClient(http: TrelloHttp): TrelloClient {
       });
     },
     createList(input) {
-      return http.request<List>("/1/lists", {
-        method: "POST",
-        query: { idBoard: input.idBoard, name: input.name },
-      });
+      return http
+        .request<List>("/1/lists", {
+          method: "POST",
+          query: { idBoard: input.idBoard, name: input.name },
+        })
+        .then((list) => {
+          // Nova lista muda o board: invalida board/lists cacheados desse board.
+          cache?.invalidatePrefix(`/1/boards/${input.idBoard}`);
+          cache?.delete(BOARDS_KEY);
+          return list;
+        });
     },
     createCard(input) {
       return http.request<Card>("/1/cards", {
