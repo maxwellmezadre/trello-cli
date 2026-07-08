@@ -40,6 +40,20 @@ Rode com `bun run src/bin.ts <comando>`. Para instalar o binário `trello` no PA
 bun link            # disponibiliza `trello` globalmente
 ```
 
+### Binário único (zero-runtime)
+
+Compile um executável autocontido (embute o runtime — não precisa de Bun/Node
+instalado para rodar):
+
+```sh
+bun run build:binary   # gera ./trello
+./trello --version
+./trello mcp           # servidor MCP a partir do binário
+```
+
+Use `bun build --compile --target=bun-linux-x64` (e variantes) para outras
+plataformas.
+
 > **Planejado:** publicação em npm (`npx trello-cli ...` / `bunx trello-cli ...`)
 > e binários pré-compilados nas Releases. Veja os
 > [milestones M4](docs/PRD.md#10-milestones).

@@ -1,11 +1,8 @@
 #!/usr/bin/env bun
-import { readFileSync } from "node:fs";
-
-// Lê a versão do package.json em runtime — funciona em Bun e Node ESM sem
-// import assertions (que ainda divergem entre runtimes).
-const pkg = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-) as { version: string };
+// Import estático de JSON: o bundler (Bun/tsx) embute a versão, então funciona
+// também no binário compilado (`bun build --compile`), onde não há
+// package.json ao lado do executável.
+import pkg from "../package.json" with { type: "json" };
 
 // Lazy-import por modo mantém o cold start baixo (NFR-1): o servidor MCP não
 // carrega o commander e vice-versa. `mcp` é tratado direto (fast path); todo o

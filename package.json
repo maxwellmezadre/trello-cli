@@ -13,7 +13,8 @@
   "scripts": {
     "start": "bun run src/bin.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "build:binary": "bun build --compile src/bin.ts --outfile trello"
   },
   "devDependencies": {
     "@types/bun": "latest",
