@@ -1,5 +1,8 @@
 import { Type } from "@sinclair/typebox";
-import { enrichAttachment } from "../trello/attachments.js";
+import {
+  downloadCardAttachment,
+  enrichAttachment,
+} from "../trello/attachments.js";
 import { defineTool } from "./define.js";
 
 export const getCardAttachments = defineTool({
@@ -16,4 +19,20 @@ export const getCardAttachments = defineTool({
       enrichAttachment(args.cardId, attachment),
     );
   },
+});
+
+export const downloadAttachment = defineTool({
+  name: "download_attachment",
+  description:
+    "Baixa um anexo de um card para o disco. Uploads usam auth OAuth automaticamente.",
+  // Download não muda estado no Trello: disponível em read-only mode (F-20).
+  readOnly: true,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    attachmentId: Type.String({ description: "ID do anexo" }),
+    destDir: Type.Optional(
+      Type.String({ description: "Diretório de destino (default: config)" }),
+    ),
+  }),
+  run: (args, ctx) => downloadCardAttachment(ctx, args),
 });
