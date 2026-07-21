@@ -61,12 +61,15 @@ plataformas.
 
 ## Configuração
 
-Gere sua chave e token em <https://trello.com/app-key> e exporte:
+Gere sua chave e token em <https://trello.com/power-ups/admin> e exporte:
 
 ```sh
 export TRELLO_API_KEY="sua-key"
 export TRELLO_TOKEN="seu-token"
 ```
+
+> 📸 **Primeira vez?** Veja o passo a passo com telas reais em
+> **[docs/GERAR-CHAVES.md](docs/GERAR-CHAVES.md)**.
 
 Pronto — a primeira chamada já funciona:
 
