@@ -1,5 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import {
+  deleteAllCardAttachments,
+  deleteCardAttachment,
   downloadAllCardAttachments,
   downloadCardAttachment,
   enrichAttachment,
@@ -79,4 +81,39 @@ export const attachFileToCard = defineTool({
   }),
   run: (args, ctx) =>
     ctx.trello.attachFileToCard(args.cardId, args.filePath, args.name),
+});
+
+export const deleteAttachment = defineTool({
+  name: "delete_card_attachment",
+  description: "Remove um anexo de um card. Irreversível — o anexo é apagado.",
+  readOnly: false,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    attachmentId: Type.String({ description: "ID do anexo" }),
+  }),
+  run: (args, ctx) => deleteCardAttachment(ctx, args),
+});
+
+export const deleteAllAttachments = defineTool({
+  name: "delete_all_card_attachments",
+  description:
+    "Remove TODOS os anexos de um card. Irreversível — exige confirm: true.",
+  readOnly: false,
+  input: Type.Object({
+    cardId: Type.String({ description: "ID do card" }),
+    // Guarda contra remoção acidental em massa por um agente: o schema exige o
+    // literal `true`, então a recusa vem do próprio runTool (ToolInputError) e
+    // o requisito aparece no inputSchema anunciado pelo MCP.
+    confirm: Type.Literal(true, {
+      description: "Precisa ser true — confirma a remoção de todos os anexos",
+    }),
+    concurrency: Type.Optional(
+      Type.Number({ description: "Deleções simultâneas (default: config)" }),
+    ),
+  }),
+  run: (args, ctx) =>
+    deleteAllCardAttachments(ctx, {
+      cardId: args.cardId,
+      concurrency: args.concurrency,
+    }),
 });

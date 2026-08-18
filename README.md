@@ -90,6 +90,7 @@ trello move-card <cardId> <listId>   # move um card
 trello comment <cardId> "texto"      # comenta
 trello download <cardId> <attId>     # baixa um anexo (auth OAuth automática)
 trello download-all <cardId>         # baixa todos + _manifest.json
+trello delete-attachment <cardId> <attId>   # remove um anexo (pede confirmação)
 trello archive-board <boardId> --out ./export
 ```
 
@@ -121,7 +122,7 @@ Configuração para o Claude Desktop / Claude Code (`mcpServers`):
 }
 ```
 
-As 30 tools ficam disponíveis ao agente; anexos também como resources
+As 32 tools ficam disponíveis ao agente; anexos também como resources
 `trello://cards/{cardId}/attachments/{attachmentId}`.
 
 ## Variáveis de ambiente
@@ -146,7 +147,7 @@ Referência completa: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Tools
 
-15 de leitura (também em read-only) e 15 de escrita. Resumo:
+15 de leitura (também em read-only) e 17 de escrita. Resumo:
 
 - **Boards/listas/cards:** `list_boards`, `get_board`, `get_lists`,
   `get_cards_in_list`, `get_card`, `create_list`, `create_card`, `update_card`,
@@ -155,7 +156,8 @@ Referência completa: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
   `add_checklist_item`, `set_checklist_item_state`, `get_comments`,
   `add_comment`.
 - **Anexos:** `get_card_attachments`, `download_attachment`,
-  `download_all_card_attachments`, `attach_url_to_card`, `attach_file_to_card`.
+  `download_all_card_attachments`, `attach_url_to_card`, `attach_file_to_card`,
+  `delete_card_attachment`, `delete_all_card_attachments`.
 - **Labels/membros/campos:** `get_board_labels`, `create_label`,
   `add_label_to_card`, `get_board_members`, `assign_member_to_card`,
   `get_custom_fields`, `get_card_custom_fields`, `set_card_custom_field`.

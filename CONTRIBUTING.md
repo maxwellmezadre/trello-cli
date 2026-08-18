@@ -59,5 +59,6 @@ No CI ele roda apenas quando os secrets estão presentes (não em forks).
 
 - [ ] `bun test` verde e `tsc --noEmit` limpo
 - [ ] Documentação atualizada quando o comportamento muda
-      (`README`, `docs/TOOLS.md`, `docs/CONFIGURATION.md`, `SKILL.md`)
+      (`README`, `docs/TOOLS.md`, `docs/CLI.md`, `docs/CONFIGURATION.md`,
+      `SKILL.md`)
 - [ ] Commits em Conventional Commits

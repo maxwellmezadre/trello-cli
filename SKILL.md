@@ -6,7 +6,7 @@ description: >-
   especialmente baixar arquivos anexados (o diferencial: anexos "uploaded"
   exigem auth OAuth por header, tratada automaticamente). Triggers: Trello,
   board, card, lista, checklist, anexo, attachment, baixar anexo, mover card,
-  arquivar card, exportar board.
+  arquivar card, exportar board, remover anexo, apagar anexo, limpar anexos.
 ---
 
 # trello-cli
@@ -73,6 +73,8 @@ Escrita (ausentes em read-only):
 | `set_checklist_item_state` | `trello set-item-state <cardId> <checkItemId> <complete\|incomplete>` |
 | `attach_url_to_card` | `trello attach-url <cardId> <url>` |
 | `attach_file_to_card` | `trello attach-file <cardId> <filePath> [--name]` |
+| `delete_card_attachment` | `trello delete-attachment <cardId> <attachmentId> [-y]` |
+| `delete_all_card_attachments` | `trello delete-all-attachments <cardId> [-y]` |
 | `create_label` | `trello create-label <boardId> <name> [--color]` |
 | `add_label_to_card` | `trello add-label <cardId> <labelId>` |
 | `assign_member_to_card` | `trello assign-member <cardId> <memberId>` |
@@ -110,6 +112,10 @@ trello archive-board <boardId> --out ./export
   tentar usá-los falha com "read-only mode". Só leitura e download.
 - **Rate limit**: o Trello limita 100 req/10s por token; a ferramenta enfileira
   localmente (90/10s) e faz backoff. Não paralelize por fora.
+- **Remover anexo é irreversível**: o Trello não arquiva anexo, apaga. Confirme
+  com o usuário ANTES de chamar `delete_card_attachment`, e mais ainda o
+  `delete_all_card_attachments` (que exige `confirm: true`). Apagar o anexo de
+  capa também limpa a capa do card.
 - **Anexos uploaded**: baixe SEMPRE pela ferramenta — o header OAuth é
   obrigatório e é aplicado automaticamente só a hosts do Trello (nunca a links
   externos, para não vazar o token).

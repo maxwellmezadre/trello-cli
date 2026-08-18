@@ -2,6 +2,7 @@ import { mkdir, open, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Config } from "../config.js";
 import type { Ctx } from "../context.js";
+import { TrelloApiError } from "../core/http.js";
 import type { Attachment } from "./client.js";
 
 // Hosts em que um anexo é servido pela Trello como UPLOAD. É o host — não o
@@ -359,6 +360,133 @@ export async function downloadAllCardAttachments(
     JSON.stringify(manifest, null, 2),
   );
   return manifest;
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+
+/**
+ * DELETE de um anexo já resolvido na listagem. O 404 aqui só acontece na
+ * corrida entre a listagem e o DELETE — a checagem de existência é de quem
+ * chama.
+ *
+ * ponytail: Error puro em vez de uma classe nova — CLI e MCP só leem
+ * `.message`, e `pickByName` já usa Error puro no not-found análogo. Vira
+ * classe quando alguém precisar discriminar o tipo.
+ */
+async function deleteOne(
+  ctx: Ctx,
+  cardId: string,
+  attachment: Attachment,
+): Promise<void> {
+  try {
+    await ctx.trello.deleteCardAttachment(cardId, attachment.id);
+  } catch (error) {
+    // Só IDs e nome na mensagem: a da camada HTTP omite a URL de propósito,
+    // que carrega key/token (NFR-8).
+    if (error instanceof TrelloApiError && error.status === 404) {
+      throw new Error(
+        `Attachment ${attachment.id} ("${attachment.name}") no longer exists on card ${cardId}`,
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Remove um anexo de um card. Irreversível: a Trello não arquiva anexo, só
+ * apaga.
+ *
+ * Resolve o anexo na listagem ANTES do DELETE, como
+ * {@link downloadCardAttachment}. A API não documenta resposta de erro para
+ * este endpoint: nem 404 (anexo inexistente) nem 400 (id malformado, o caso do
+ * id curto colado da URL do card) são garantidos. Checar antes é o único jeito
+ * de dar "não encontrado" de forma confiável — e de nunca disparar um DELETE
+ * contra um alvo não verificado. Custa um GET (anexos não entram no cache).
+ */
+export async function deleteCardAttachment(
+  ctx: Ctx,
+  params: { cardId: string; attachmentId: string },
+): Promise<{
+  deleted: true;
+  cardId: string;
+  attachmentId: string;
+  name: string;
+}> {
+  const attachments = await ctx.trello.getCardAttachments(params.cardId);
+  const attachment = attachments.find(
+    (candidate) => candidate.id === params.attachmentId,
+  );
+  if (!attachment) {
+    throw new Error(
+      `Attachment ${params.attachmentId} not found on card ${params.cardId}`,
+    );
+  }
+
+  await deleteOne(ctx, params.cardId, attachment);
+  return {
+    deleted: true,
+    cardId: params.cardId,
+    attachmentId: attachment.id,
+    name: attachment.name,
+  };
+}
+
+export type DeleteReport = {
+  ok: Array<{ id: string; name: string }>;
+  failed: Array<{ id: string; name: string; error: string }>;
+  summary: { total: number; ok: number; failed: number };
+};
+
+/**
+ * Remove TODOS os anexos de um card, com concorrência limitada (NFR-3) e
+ * tolerância a falha por item (NFR-6) — espelha o bulk download. Card sem
+ * anexos devolve o relatório zerado sem chamar a API.
+ */
+export async function deleteAllCardAttachments(
+  ctx: Ctx,
+  params: { cardId: string; concurrency?: number },
+): Promise<DeleteReport> {
+  const attachments = await ctx.trello.getCardAttachments(params.cardId);
+  const limit = Math.max(
+    1,
+    params.concurrency ?? ctx.config.downloadConcurrency,
+  );
+
+  const entries = await mapWithConcurrency(attachments, limit, async (att) => {
+    try {
+      await deleteOne(ctx, params.cardId, att);
+      return { kind: "ok" as const, id: att.id, name: att.name };
+    } catch (error) {
+      // Um 404 aqui (alguém apagou no meio) conta como falha, não sucesso: a
+      // pós-condição vale, mas o relatório prefere ser literal.
+      return {
+        kind: "failed" as const,
+        id: att.id,
+        name: att.name,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  const ok: DeleteReport["ok"] = [];
+  const failed: DeleteReport["failed"] = [];
+  for (const entry of entries) {
+    if (entry.kind === "ok") {
+      ok.push({ id: entry.id, name: entry.name });
+    } else {
+      failed.push({ id: entry.id, name: entry.name, error: entry.error });
+    }
+  }
+
+  return {
+    ok,
+    failed,
+    summary: {
+      total: attachments.length,
+      ok: ok.length,
+      failed: failed.length,
+    },
+  };
 }
 
 // ── MCP resources & imagens inline ────────────────────────────────────────

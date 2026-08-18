@@ -2,6 +2,8 @@ import type { Config } from "../config.js";
 import {
   attachFileToCard,
   attachUrlToCard,
+  deleteAllAttachments,
+  deleteAttachment,
   downloadAllAttachments,
   downloadAttachment,
   getCardAttachments,
@@ -62,6 +64,8 @@ export const allTools: ToolDef[] = [
   setChecklistItemState,
   attachUrlToCard,
   attachFileToCard,
+  deleteAttachment,
+  deleteAllAttachments,
   createLabel,
   addLabelToCard,
   assignMemberToCard,

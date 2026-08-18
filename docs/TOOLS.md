@@ -1,6 +1,6 @@
 # Tools
 
-22 tools sobre o núcleo compartilhado. Fonte de verdade:
+32 tools sobre o núcleo compartilhado. Fonte de verdade:
 [`src/tools/registry.ts`](../src/tools/registry.ts). As de leitura ficam
 disponíveis também em read-only (`TRELLO_READ_ONLY=1`); as de escrita não são
 registradas nesse modo.
@@ -40,6 +40,8 @@ registradas nesse modo.
 | `set_checklist_item_state` | `cardId`, `checkItemId`, `state` (`complete\|incomplete`) | Marca/desmarca um item. |
 | `attach_url_to_card` | `cardId`, `url` | Anexa uma URL. |
 | `attach_file_to_card` | `cardId`, `filePath`, `name?` | Upload de arquivo local (multipart). |
+| `delete_card_attachment` | `cardId`, `attachmentId` | Remove um anexo. Irreversível. |
+| `delete_all_card_attachments` | `cardId`, `confirm` (`true`), `concurrency?` | Remove TODOS os anexos de um card. Irreversível. |
 | `create_label` | `boardId`, `name`, `color?` | Cria uma label. |
 | `add_label_to_card` | `cardId`, `labelId` | Atribui uma label a um card. |
 | `assign_member_to_card` | `cardId`, `memberId` | Atribui um membro a um card. |

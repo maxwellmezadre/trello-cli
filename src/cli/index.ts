@@ -1,8 +1,11 @@
 import { Command } from "commander";
+import type { Config } from "../config.js";
 import { loadConfig } from "../config.js";
 import { createContext } from "../context.js";
+import type { ToolDef } from "../tools/define.js";
 import { runTool } from "../tools/define.js";
 import { activeTools, allTools } from "../tools/registry.js";
+import type { DeleteReport } from "../trello/attachments.js";
 
 // CLI sobre o MESMO registry/domínio do MCP (F-24): cada comando monta os args
 // e chama `runTool` — validação e comportamento idênticos aos da tool MCP.
@@ -21,6 +24,23 @@ function formatHuman(result: unknown): string {
   return formatLine(result);
 }
 
+/**
+ * Resolve a tool pela mesma lista do MCP: em read-only as write tools não são
+ * registradas, então comandos de escrita falham aqui (NFR-9).
+ */
+function resolveTool(config: Config, toolName: string): ToolDef {
+  const tool = activeTools(config).find(
+    (candidate) => candidate.name === toolName,
+  );
+  if (tool) return tool;
+  const exists = allTools.some((candidate) => candidate.name === toolName);
+  throw new Error(
+    exists
+      ? `Command unavailable in read-only mode: ${toolName}`
+      : `Tool not found: ${toolName}`,
+  );
+}
+
 async function invoke(
   toolName: string,
   args: Record<string, unknown>,
@@ -29,19 +49,7 @@ async function invoke(
   try {
     const config = loadConfig();
     const ctx = createContext(config);
-    // Resolve pela mesma lista do MCP: em read-only as write tools não são
-    // registradas, então comandos de escrita falham aqui (NFR-9).
-    const tool = activeTools(config).find(
-      (candidate) => candidate.name === toolName,
-    );
-    if (!tool) {
-      const exists = allTools.some((candidate) => candidate.name === toolName);
-      throw new Error(
-        exists
-          ? `Command unavailable in read-only mode: ${toolName}`
-          : `Tool not found: ${toolName}`,
-      );
-    }
+    const tool = resolveTool(config, toolName);
     const result = await runTool(tool, args, ctx);
     // stdout só o resultado; erros vão para stderr.
     console.log(json ? JSON.stringify(result, null, 2) : formatHuman(result));
@@ -53,6 +61,37 @@ async function invoke(
 
 function toNumber(value: string | undefined): number | undefined {
   return value === undefined ? undefined : Number(value);
+}
+
+/**
+ * Confirmação interativa de operação destrutiva.
+ *
+ * `-y/--yes` pula. Sem TTY (script/CI) RECUSA em vez de perguntar: nunca trava
+ * esperando input que não vem, e nunca apaga em silêncio para quem esqueceu o
+ * `-y`. `--json` NÃO vale como consentimento — é formato de saída, não
+ * autorização; a pergunta sai em stderr, então o stdout continua JSON puro
+ * (NFR-8) mesmo com o prompt na tela.
+ */
+async function confirmDestructive(
+  question: string,
+  yes: boolean | undefined,
+): Promise<boolean> {
+  if (yes) return true;
+  if (!process.stdin.isTTY) {
+    console.error(
+      "Confirmação necessária: repita com -y/--yes (stdin não é interativo).",
+    );
+    process.exitCode = 1;
+    return false;
+  }
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    const answer = await rl.question(`${question} [s/N] `);
+    return /^(s|sim|y|yes)$/i.test(answer.trim());
+  } finally {
+    rl.close();
+  }
 }
 
 export async function runCli(argv: string[], version: string): Promise<void> {
@@ -230,6 +269,83 @@ export async function runCli(argv: string[], version: string): Promise<void> {
         options.json ?? false,
       ),
     );
+
+  // Destrutivo e irreversível: confirma antes, salvo -y/--json/stdin não-TTY.
+  command("delete-attachment <cardId> <attachmentId>")
+    .description("Remove um anexo de um card (irreversível)")
+    .option("-y, --yes", "não pedir confirmação")
+    .action(async (cardId, attachmentId, options) => {
+      try {
+        // Read-only checado ANTES do prompt: perguntar e só então recusar seria
+        // cruel. O `invoke` resolve de novo — custa um parse de env.
+        resolveTool(loadConfig(), "delete_card_attachment");
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+        return;
+      }
+      // Recusar é escolha do usuário, não falha: o exitCode fica em 0. O caso
+      // não-interativo sai com 1, e quem decide isso é o próprio helper.
+      const confirmed = await confirmDestructive(
+        `Remover o anexo ${attachmentId} do card ${cardId}? Irreversível.`,
+        options.yes,
+      );
+      if (!confirmed) return;
+      await invoke(
+        "delete_card_attachment",
+        { cardId, attachmentId },
+        options.json ?? false,
+      );
+    });
+
+  command("delete-all-attachments <cardId>")
+    .description("Remove TODOS os anexos de um card (irreversível)")
+    .option("-y, --yes", "não pedir confirmação")
+    .option("--concurrency <n>", "deleções simultâneas")
+    .action(async (cardId, options) => {
+      // Hand-rolled em vez de `invoke` (como archive-board): precisa listar
+      // antes de perguntar e imprimir um resumo próprio — o relatório não tem
+      // `id`, então cairia no JSON cru do formatHuman.
+      try {
+        const config = loadConfig();
+        // Resolve a tool ANTES do GET: em read-only falha sem gastar requisição
+        // e sem perguntar ao usuário algo que não vai acontecer.
+        const tool = resolveTool(config, "delete_all_card_attachments");
+        const ctx = createContext(config);
+        // Diz QUANTOS anexos vão morrer — confirmação que não informa o
+        // tamanho do estrago é decoração. Custa um GET a mais, só na CLI.
+        const attachments = await ctx.trello.getCardAttachments(cardId);
+        if (attachments.length === 0) {
+          console.error(`Nenhum anexo no card ${cardId}.`);
+          return;
+        }
+        const confirmed = await confirmDestructive(
+          `Remover ${attachments.length} anexo(s) do card ${cardId}? Irreversível.`,
+          options.yes,
+        );
+        if (!confirmed) return;
+
+        const report = (await runTool(
+          tool,
+          {
+            cardId,
+            confirm: true,
+            concurrency: toNumber(options.concurrency),
+          },
+          ctx,
+        )) as DeleteReport;
+        console.log(
+          options.json
+            ? JSON.stringify(report, null, 2)
+            : `Removidos ${report.summary.ok}/${report.summary.total} anexos do card ${cardId} (${report.summary.failed} falhas)`,
+        );
+        // Delete parcial deixa o card num estado que ninguém pediu — sinaliza.
+        if (report.summary.failed > 0) process.exitCode = 1;
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      }
+    });
 
   // ── Download (disponível também em read-only) ─────────────────────────────
 

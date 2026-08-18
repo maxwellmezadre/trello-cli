@@ -172,6 +172,7 @@ export type TrelloClient = {
     filePath: string,
     name?: string,
   ): Promise<Attachment>;
+  deleteCardAttachment(cardId: string, attachmentId: string): Promise<unknown>;
   getBoardLabels(boardId: string): Promise<Label[]>;
   createLabel(input: {
     idBoard: string;
@@ -341,6 +342,13 @@ export function createTrelloClient(
         method: "POST",
         body: form,
       });
+    },
+    deleteCardAttachment(cardId, attachmentId) {
+      // Anexos não entram no cache (só metadados de board/list), nada a invalidar.
+      return http.request<unknown>(
+        `/1/cards/${cardId}/attachments/${attachmentId}`,
+        { method: "DELETE" },
+      );
     },
     getBoardLabels(boardId) {
       return http.request<Label[]>(`/1/boards/${boardId}/labels`);

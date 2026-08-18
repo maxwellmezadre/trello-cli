@@ -35,6 +35,8 @@ puro; erros vão para stderr com código de saída ≠ 0.
 | `trello set-item-state <cardId> <checkItemId> <state>` | `complete`/`incomplete` |
 | `trello attach-url <cardId> <url>` | Anexa uma URL |
 | `trello attach-file <cardId> <filePath> [--name]` | Upload de arquivo |
+| `trello delete-attachment <cardId> <attachmentId> [-y]` | Remove um anexo (irreversível; pede confirmação) |
+| `trello delete-all-attachments <cardId> [-y] [--concurrency <n>]` | Remove TODOS os anexos de um card (irreversível) |
 
 ## Exportação
 
