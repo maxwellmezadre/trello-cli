@@ -1,6 +1,6 @@
 {
   "name": "@maxwellmezadre/trello-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Trello CLI que embute um servidor MCP e uma Skill, sobre um núcleo compartilhado",
   "type": "module",
   "license": "MIT",
