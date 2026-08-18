@@ -54,10 +54,27 @@ bun run build:binary   # gera ./trello
 Use `bun build --compile --target=bun-linux-x64` (e variantes) para outras
 plataformas.
 
-> **Planejado:** publicação em npm como `@maxwellmezadre/trello-cli`
-> (`npx @maxwellmezadre/trello-cli ...` / `bunx ...`) e binários pré-compilados
-> nas Releases (tag `v*` dispara o workflow). Veja os
-> [milestones M4](docs/PRD.md#10-milestones).
+### npm
+
+```sh
+npm i -g @maxwellmezadre/trello-cli   # instala `trello` e `trello-mcp` no PATH
+trello --version
+```
+
+Sem instalar nada:
+
+```sh
+bunx @maxwellmezadre/trello-cli boards
+npx -p @maxwellmezadre/trello-cli trello boards
+```
+
+O `npx` precisa do `-p` e do nome do binário: o pacote declara dois executáveis
+(`trello` e `trello-mcp`) e nenhum deles se chama `trello-cli`, então
+`npx @maxwellmezadre/trello-cli` sozinho falha com *could not determine
+executable to run*. O `bunx` resolve sozinho.
+
+Binários pré-compilados para linux-x64, darwin-arm64 e windows-x64 estão nas
+[Releases](https://github.com/maxwellmezadre/trello-cli/releases).
 
 ## Configuração
 
@@ -83,14 +100,14 @@ que diz o que falta e onde obter.
 ## Uso — CLI
 
 ```sh
-trello boards --json                 # lista boards em JSON
-trello lists <boardId>               # listas de um board
-trello card <cardId>                 # detalhes de um card
-trello move-card <cardId> <listId>   # move um card
-trello comment <cardId> "texto"      # comenta
-trello download <cardId> <attId>     # baixa um anexo (auth OAuth automática)
-trello download-all <cardId>         # baixa todos + _manifest.json
-trello delete-attachment <cardId> <attId>   # remove um anexo (pede confirmação)
+trello boards --json                       # lista boards em JSON
+trello lists <boardId>                     # listas de um board
+trello card <cardId>                       # detalhes de um card
+trello move-card <cardId> <listId>         # move um card
+trello comment <cardId> "texto"            # comenta
+trello download <cardId> <attId>           # baixa um anexo (auth OAuth automática)
+trello download-all <cardId>               # baixa todos + _manifest.json
+trello delete-attachment <cardId> <attId>  # remove um anexo (pede confirmação)
 trello archive-board <boardId> --out ./export
 ```
 
