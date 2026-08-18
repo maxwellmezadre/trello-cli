@@ -24,15 +24,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          # Trusted publishing (OIDC) exige npm >= 11.5.1; Node 24 traz 11.13.
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
       - run: bun install --frozen-lockfile
       - run: bun run build:dist
-      - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Sem NODE_AUTH_TOKEN: a credencial é um token OIDC de vida curta, emitido
+      # no publish e válido só para este workflow. A provenance sai automática,
+      # por isso `--provenance` também saiu.
+      - run: npm publish --access public
 
   binaries:
     needs: test
